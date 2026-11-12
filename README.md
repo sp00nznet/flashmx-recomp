@@ -68,6 +68,23 @@ trial check is not allowed, so the honest result is: **the recomp runs Flash's
 real code up to the real anti-debug client and stops there.** Someone with a
 retail serial (which skips the trial anti-debug path) can carry it further.
 
+### The retail path (your own serial)
+
+A retail serial skips the trial anti-debug path, so it is the cleaner way in.
+**Use your own serial only**, inside the throwaway VM, at run time: set
+`FLASH_SERIAL` (or answer the prompt) and run `tools\vm\serial.ps1` on Flash's
+normal serial-entry page. The serial is never stored, logged or committed, and
+must not appear in a screenshot. Activation is never faked.
+
+Tested 2026-11-12 with a user-supplied serial: the entry page accepted it, but
+it is an **upgrade** serial, so Flash then asks for the serial of the product
+it upgrades from ("Enter your previous serial number"). Without that, the
+retail path stops there, before activation. A full (non-upgrade) serial, or
+the upgrade serial together with the previous product's serial
+(`FLASH_PREV_SERIAL`), is needed to go further, and then online activation
+may be required. Macromedia's activation servers are long gone; if activation
+won't complete, the retail path stops there too.
+
 ## Screenshots
 
 None yet: the authoring window is not reached. `tools/vm/make.jsfl` builds a

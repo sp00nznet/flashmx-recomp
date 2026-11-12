@@ -15,6 +15,7 @@ authoring window.
 - Host (`src/runtime/host.c`): MSLU (unicows) W-function redirects patched
   into the import thunks the loader-style binding never sees; guest SEH turned
   on; registry-, exit- and SEH-tracing behind `FL_TRACE_*` env vars.
+- `tools/vm/serial.ps1`: enters your own serial (from `FLASH_SERIAL`, never stored) on the normal serial-entry page; documented the upgrade-serial result.
 - `tools/vm/`: the netlab VM harness — install the trial, drive the activation
   dialog's trial flow, make a reference `.fla`/`.swf` with the original
   Flash.exe, run the recomp against the same real licensing service.

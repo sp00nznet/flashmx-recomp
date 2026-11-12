@@ -86,6 +86,22 @@ Macromedia Licensing Service, and stops there. Finishing it means reproducing
 the protector's exception-driven interpreter exactly (see ROADMAP), or using a
 retail serial, which does not take the trial anti-debug path.
 
+## The retail path
+A retail serial skips the trial anti-debug path. `tools/vm/serial.ps1` types
+**your own** serial, from `FLASH_SERIAL` or a prompt, into Flash's normal
+serial-entry page and presses Continue. Run it only in the throwaway VM. It
+never stores the serial, and no screenshot is taken while the entry page is up.
+
+Tried on 2026-11-12 in a fresh throwaway clone (destroyed afterwards) with a
+user-supplied serial. The entry page accepted it as an **upgrade** serial and
+moved to "Enter your previous serial number. This upgrade requires you to
+enter the serial number of the product from which you are upgrading." No
+previous serial was available, so the retail path stopped there, before any
+activation step. Nothing was guessed or faked. Next time: a full serial, or
+the upgrade serial plus the previous product's (`FLASH_PREV_SERIAL`). After
+that, Flash may need online activation, and Macromedia's activation servers
+no longer exist. If it won't activate, stop there too.
+
 ## The oracle and the harness
 `tools/vm/make.jsfl` builds a 320×240 document (rectangle, oval, line, text, a
 second keyframe, a frame-1 `trace`) and exports `harness.swf`, run by the
