@@ -1,0 +1,17 @@
+{
+  "title": "Macromedia Flash MX 2004",
+  "repo": "sp00nznet/flashmx-recomp",
+  "accent": "#cc2200",
+  "note": {
+    "windows": "Install Flash MX 2004 from your own disc first (its 30-day trial is fine). The build takes about an hour and 6 GB (Flash.exe is 13 MB of code). Python and the Visual Studio Build Tools are installed if they are missing; the Build Tools are about 3 GB, and Windows asks for permission once. Point it at the folder Flash MX 2004 is installed in."
+  },
+  "game": {
+    "name": "Macromedia Flash MX 2004 (7.2)",
+    "files": ["Flash.exe|Macromedia/Flash MX 2004/Flash.exe"]
+  },
+  "sources": [{ "repo": "sp00nznet/pcrecomp", "ref": "pcrecomp-flashmx", "dir": "pcrecomp" }],
+  "setup": {
+    "windows": ["cmd", "/c", "Setup.cmd", "-Yes", "-GameDir", "{game}"]
+  },
+  "play": "Flash MX 2004.lnk"
+}
