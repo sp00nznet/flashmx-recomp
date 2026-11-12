@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.2.0] - 2026-11-12
+
+The authoring window opens, and a published `.swf` matches the original's
+byte for byte.
+
+### Fixed
+- `run_lift.py` keeps `__except`/catch continuations (1,146) out of the
+  dispatch table. disasm32 takes a scope table's `__except` pointers for
+  functions, so `_except_handler3`'s jump into an `__except` block ran it as a
+  separate function. That broke the licensing client's anti-debug check (an
+  `int 1` inside `__try`). Now the jump lands in the parent body's
+  `RECOMP_EH_FRAME` landing pad, and the check passes as it does natively.
+
+### Verified (in a throwaway VM, licensed with the user's own serial)
+- Licensing activated through Flash's own flow (a Studio MX 2004 serial).
+  The recomp ran against that install, and the real anti-debug check passed.
+- The authoring window opens (`docs/screenshots/authoring.png`).
+- `tools/vm/make.jsfl` run by the recomp: `harness.swf` SHA-256
+  `7C908BA3…EBE81302`, identical to the original Flash.exe's. No original
+  Flash.exe was running (`tools/vm/proof.ps1`).
+
+### Changed
+- `tools/vm/harness.ps1`: finds the "install Flash Player" prompt by a
+  wildcard title search (exact-title FindWindow missed it); `-NoTrial` for a
+  licensed install.
+
 ## [0.1.0] - 2026-11-12
 
 First bring-up. Pre-alpha: the recomp runs Flash MX 2004's real start-up and
@@ -29,9 +55,7 @@ authoring window.
   callback boundary (as WOW64 does when a window procedure lets one out),
   instead of reaching the host and ending the process.
 
-### Known blocker
-- The licensing client is code-virtualized anti-debug that uses SEH as its
-  interpreter loop. The recomp reproduces the fault and the handler/unwind,
-  but the obfuscated `__except` continuation needs exact fault-`CONTEXT`
-  state; it takes its tamper path and ends the process. Licensing is never
-  faked, so this is where it stops ([README](README.md), "Why it stops").
+### Known blocker (fixed in 0.2.0)
+- At the time, the licensing client's anti-debug check ended the process. The
+  cause looked like missing fault-`CONTEXT` state. It was really the
+  `__except` blocks being dispatched as functions (see 0.2.0).

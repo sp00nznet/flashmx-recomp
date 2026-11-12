@@ -1,8 +1,8 @@
 # Run Flash (original or recomp) on make.jsfl through the normal trial flow,
 # decline the IE "install Flash Player" prompt, wait for the export, keep outputs.
-param([string]$Exe, [string]$ArgList, [string]$Keep, [int]$Timeout = 300)
+param([string]$Exe, [string]$ArgList, [string]$Keep, [int]$Timeout = 300, [switch]$NoTrial)
 $ErrorActionPreference = 'Continue'
-Add-Type 'using System; using System.Runtime.InteropServices; public static class H { [DllImport("user32.dll")] public static extern bool SetProcessDPIAware(); [DllImport("user32.dll")] public static extern IntPtr FindWindow(string c,string t); [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r); public struct RECT { public int L,T,R,B; } [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h); [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y); [DllImport("user32.dll")] public static extern void mouse_event(uint f,uint x,uint y,uint d,IntPtr e); }'
+Add-Type 'using System; using System.Runtime.InteropServices; public static class H { [DllImport("user32.dll")] public static extern bool SetProcessDPIAware(); [DllImport("user32.dll")] public static extern IntPtr FindWindow(string c,string t); public delegate bool EP(IntPtr h, IntPtr l); [DllImport("user32.dll")] public static extern bool EnumWindows(EP p, IntPtr l); [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, System.Text.StringBuilder s, int n); [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h); public static IntPtr Find(string part) { IntPtr r = IntPtr.Zero; EnumWindows((h, l) => { if (!IsWindowVisible(h)) return true; var sb = new System.Text.StringBuilder(256); GetWindowText(h, sb, 256); if (sb.ToString().Contains(part)) { r = h; return false; } return true; }, IntPtr.Zero); return r; } [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r); public struct RECT { public int L,T,R,B; } [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h); [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y); [DllImport("user32.dll")] public static extern void mouse_event(uint f,uint x,uint y,uint d,IntPtr e); }'
 [H]::SetProcessDPIAware() | Out-Null
 New-Item -ItemType Directory -Force C:\fl\out, $Keep | Out-Null
 Remove-Item C:\fl\out\* -EA 0
@@ -10,7 +10,7 @@ $p = Start-Process $Exe -ArgumentList $ArgList -PassThru -RedirectStandardError 
 & C:\fl\trial.ps1 -Timeout 120
 $t = 0
 while (-not (Test-Path C:\fl\out\done.txt) -and $t -lt $Timeout -and -not $p.HasExited) {
-    $h = [H]::FindWindow($null, 'Flash MX 2004 - Security Warning')
+    $h = [H]::Find('Security Warning')
     if ($h -ne [IntPtr]::Zero) {
         $r = New-Object H+RECT; [H]::GetWindowRect($h, [ref]$r) | Out-Null
         [H]::SetForegroundWindow($h) | Out-Null; Start-Sleep -m 300

@@ -1,47 +1,32 @@
 # Roadmap
 
 ## Where it is
-Pre-alpha. `flashmxrecomp.exe` runs Flash MX 2004's start-up (MFC/CRT init,
-MSLU, registry edition/registration reads, first window-procedure callbacks)
-and reaches the SafeCast/FLEXnet licensing client, which runs obfuscated,
-code-virtualized anti-debug. It does not open the authoring window.
+v0.2.0, alpha. With a licensed install, `flashmxrecomp.exe` passes Flash's
+own licensing and anti-debug checks, opens the authoring window, and runs JSFL
+end to end. A published `.swf` is byte-identical to the original's (one test
+document: shapes, text, two keyframes, a frame script).
 
-## The blocker (next, and hardest)
-The licensing client uses Microsoft SEH as a VM interpreter: it raises `int 1`
-/ `int n` inside `__try`, expecting the NT fault, and drives itself from the
-`__except` blocks. The recomp now faults correctly and the guest SEH chain
-runs and unwinds, but the obfuscated continuation computes on the fault
-`CONTEXT` (registers and `Eip` at the faulting instruction), which the host's
-minimal CONTEXT does not fully carry.
+## Next
+1. **A wider conformance corpus.** Today it's one document. Add JSFL cases
+   for: symbols and the library, tweens (motion/shape), bitmaps and sounds,
+   fonts (embedded and device), ActionScript 2.0 classes, components, and
+   publish settings (Flash 6/7 player, compression, protect). Diff each
+   `.swf` against the original's.
+2. **`.fla` comparison.** The `.fla` embeds a save timestamp. Compare it
+   with that field masked, or round-trip it (open in the original, re-export).
+3. **Interactive use.** The window, menus and tools have only been seen. Drive
+   them: draw, open/save dialogs, Test Movie (it loads the player).
+4. **The trial path.** It runs the same anti-debug code as the licensed path,
+   which now passes, so the trial should get through too. Not re-tested yet.
+5. **Callback C++ throws.** The splash/WM_SIZE handler lets an `int` throw
+   escape a window procedure. The host now ends that callback as Windows
+   does. Check that nothing visible depends on it.
 
-To get past it, in order of likely payoff:
-1. **Full fault CONTEXT.** Give `seh_records` the complete integer + control
-   register state at the trap (it has them: `g_eax..g_edi`, `Eip = t_trap_va`),
-   and confirm `Esp`/`Ebp` match what the guest handler expects. The VM reads
-   these as its program counter and operands.
-2. **`native32_seh_continue` for the MSVC `_except_handler3` path.** Confirm
-   the `__except` block is entered through the body's `RECOMP_EH_FRAME`
-   landing pad (966 functions got one) and not by the handler returning into
-   native CRT. The fault is currently inside `_except_handler3` (sub_00A7F994)
-   after `RtlUnwind`.
-3. **The VM dispatchers.** sub_00C62EF0 / sub_00C69D60 and the xor-keyed
-   dispatchers (sub_00C62380, sub_00C61BF0, ...) are the interpreter. If the
-   SEH path alone cannot be made faithful, these may need per-opcode handling.
-
-This is a virtualized-protector problem, not a licensing shortcut. Faking the
-service, the license file or the trial check is out of bounds (see the project
-rules). A **retail serial** skips the trial anti-debug path and is the
-cleaner way in; a contributor with one can likely reach the authoring window
-without items 1–3.
-
-## After licensing
-4. Authoring window up (MFC main frame, the document/timeline panels).
-5. JSFL automation (`fl.createDocument`, `exportSWF`): `tools/vm/make.jsfl`
-   already drives the original; point it at the recomp.
-6. Turn on `tools/swf_diff.py`: diff the recomp's `.swf`/`.fla` against the
-   original's byte-for-byte. The oracle outputs already exist.
-
-## Shared/toolkit work that would help
-- The software-interrupt trap and the C++-throw-across-callback fix are on
-  `pcrecomp-flashmx`; they are generic and belong on the wide branch once a
-  second title exercises them.
+## Toolkit work this proved out
+- On `pcrecomp-flashmx`: x86 software interrupts → guest SEH (`RECOMP_TRAP`),
+  and C++ throws ended at a callback boundary. Both are generic. They belong on
+  the wide branch once a sibling title confirms them.
+- The fix that got licensing through was a lift-driver rule: keep
+  `__except`/catch continuations out of dispatch. SWGB's driver already does
+  it. It should move into pcrecomp's shared driver, so every MSVC SEH title
+  gets it by default.

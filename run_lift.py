@@ -120,7 +120,18 @@ def main():
         fr = eh32.frame(md, read, insns or head)
         if fr and fr[0]:
             eh_at[a], eh_off[a] = fr
-    starts -= set().union(*eh_at.values()) if eh_at else set()
+    resume = set().union(*eh_at.values()) if eh_at else set()
+    starts -= resume
+    # ...and never entries of their own. disasm32 takes a scope table's
+    # __except pointers for functions; left in the dispatch table, the guest's
+    # _except_handler3 jumping to an __except block ran it as a separate
+    # function (no landing pad, wrong frame) and Flash's licensing check died
+    # in the handler. Dropped, the jump misses dispatch and lands in the
+    # parent body's RECOMP_EH_FRAME, as SWGB's driver does.
+    for a in resume & set(byaddr):
+        del byaddr[a]
+    lifter.lifted -= resume
+    print('[*] %d __except/catch continuations kept out of dispatch' % len(resume))
     print('[*] %d functions install an exception frame with somewhere to continue' % len(eh_at))
 
     entries, chunk, idx, errors, dirty, ehs, unimpl = [], [], 0, 0, 0, 0, {}

@@ -4,10 +4,9 @@ Static recompilation of **Macromedia Flash MX 2004** (Macromedia, 2004), the
 Flash authoring tool (Flash 7), from its shipping Win32 executable to native
 C. No emulator, no wrapper DLLs.
 
-It is pcrecomp's first **Visual C++ 7.1 / MFC 7.1** program, its first with
-Microsoft SEH used as deliberate control flow by an anti-debug licensing
-client, and its first that drives the real, vendor licensing service during
-bring-up.
+It is pcrecomp's first **Visual C++ 7.1 / MFC 7.1** program, and its first
+whose licensing client runs anti-debug code that uses Microsoft SEH as control
+flow (software interrupts inside `__try`).
 
 Built on the [pcrecomp](https://github.com/sp00nznet/pcrecomp) toolchain and
 following its shared house style (layout, CLI, conformance harness), like the
@@ -19,99 +18,89 @@ A static recompilation of `Flash.exe` (Flash MX 2004 7.2, PE stamp
 `0x40EE908A`, 2004-07-09; MFC 7.1 statically linked in, ~10 MB of code).
 pcrecomp lifts `Flash.exe` to C, MSVC compiles the C, and pcrecomp's
 `native32` host runs it. The DLLs it loads — `xerces-c_2_1_0`, `GdiPlus`,
-MSLU (`unicows`), the Macromedia SafeCast/FLEXnet licensing client — run
-natively and are called through the host's bridge.
+MSLU (`unicows`), the Macromedia licensing client — run natively and are
+called through the host's bridge.
 
-**Licensing is never faked.** Bring-up installs the real Flash MX 2004 (its
-30-day trial), the installer sets up the real **Macromedia Licensing
-Service**, and the recomp is run against that same service through the normal
-trial flow. The license file, the trial check and the service are the
-original's. See *Status* for how far that gets.
+**Licensing is never faked.** It runs against a real, licensed install: the
+real Macromedia Licensing Service, activated through Flash's own serial-entry
+flow with the user's own serial. The recomp passes Flash's own licensing and
+anti-debug checks by running them faithfully, not by skipping them.
 
-## Status: pre-alpha. It runs Flash's real start-up and reaches the licensing client; it does not yet open the authoring window.
+## Status: v0.2.0, alpha. The authoring window opens, and a published .swf matches the original byte for byte
 
 | Stage | State |
 |---|---|
-| Version recompiled | Flash MX 2004 7.2 (`Flash.exe`, 2004-07-09), run in its 30-day trial |
-| Installer | **run by you**, in a throwaway VM (the licensing service it sets up is needed; nothing is unpacked). The recomp reads the installed `Flash.exe` only |
+| Version recompiled | Flash MX 2004 7.2 (`Flash.exe`, 2004-07-09), licensed with the user's own serial (a Studio MX 2004 serial) |
+| Installer | **run by you**, in a throwaway VM (it sets up the licensing service). The recomp reads the installed `Flash.exe`; nothing is unpacked |
 | Function catalog (`disasm32`) | 34,229 functions, 86.5% of the code range |
-| Lift (`run_lift.py`) | 120,886 functions, 0 errors; +37k C++/SEH exception funclets seeded (`tools/eh_seeds.py`), 966 functions given SEH/C++ landing pads |
-| Host (`build/flashmxrecomp.exe`, 32-bit, `native32`) | 698 imports bound, 0 unresolved; MFC, xerces, GdiPlus and the licensing client run natively |
-| Start-up | MFC/CRT init, MSLU (unicows) thunks, the registry edition/registration reads, and the first window-procedure callbacks all run |
-| Licensing client | reached. `Flash.exe` loads the SafeCast/FLEXnet client, which runs **obfuscated, code-virtualized anti-debug** that raises software interrupts (`int 1`, `int n`) inside `__try` as covert control flow |
-| Authoring window, `.swf` export (`tools/vm/make.jsfl`) | **not reached** — blocked at the anti-debug client (see [docs/bringup.md](docs/bringup.md)) |
-| Conformance harness (`tools/swf_diff.py`) | makes reference `.fla`/`.swf` with the original and would diff the recomp's output; **SKIP** until the recomp exports |
+| Lift (`run_lift.py`) | 119,767 functions, 0 errors; ~37k C++/SEH exception funclets seeded (`tools/eh_seeds.py`); 966 functions with SEH/C++ landing pads; 1,146 `__except`/catch continuations kept out of dispatch |
+| Host (`build/flashmxrecomp.exe`, 32-bit, `native32`) | 698 imports bound, 0 unresolved |
+| Licensing + anti-debug | **passes**, through the real service and Flash's own checks (the `int 1` / `int n` traps inside `__try` fault and are handled as on NT) |
+| Authoring window | **opens**: tools, timeline, Start Page, Properties, panels ([screenshot](docs/screenshots/authoring.png)) |
+| JSFL automation | `tools/vm/make.jsfl` runs in the recomp: it builds a document, saves `harness.fla`, exports `harness.swf`, and quits |
+| Conformance (`.swf` vs the original's) | **IDENTICAL**: SHA-256 `7C908BA3…EBE81302` from both (`tools/vm/proof.ps1`; no original Flash.exe ran during the recomp's run). The `.fla` embeds a save timestamp and differs between any two runs, the original's included |
 
 Built and tested against pcrecomp branch `pcrecomp-flashmx` (on
-`pcrecomp-retailplus`), which adds the x86 software-interrupt → guest-SEH
-trap, the C++-throw-across-callback boundary, and the exception-funclet
-seeding this program needed.
+`pcrecomp-retailplus`).
 
-### Why it stops where it stops
+### How licensing got through (no fakes)
+The licensing client raises software interrupts (`int 1`, `int n`) inside
+`__try` and takes the `__except` block as "no debugger attached". Three things
+had to be right:
+1. **The interrupt has to fault.** Lifted as a no-op it looked like a
+   debugger. pcrecomp now lifts it to `RECOMP_TRAP`, which faults as NT does
+   and hands the fault to the guest's own SEH chain.
+2. **The guest's own handler runs.** The host turns on `native32_guest_seh`.
+   `_except_handler3` runs the filter and `RtlUnwind`s.
+3. **The `__except` block has to be a label, not a function.** disasm32 takes
+   a scope table's `__except` pointers for functions. Left in the dispatch
+   table, the handler's jump into the block ran it as a separate function,
+   with the wrong frame, and the check failed. `run_lift.py` now keeps those
+   continuations out of dispatch, so the jump lands in the parent body's
+   landing pad (as SWGB's driver does).
 
-The licensing client is not ordinary code. It is obfuscated and
-code-virtualized (xor-keyed dispatchers, a software-interrupt VM) and uses
-Microsoft SEH as its interpreter loop: it executes `int 1` / `int n` inside
-`__try`, which faults on NT, and takes the `__except` block — a debugger would
-swallow the interrupt, so the fault *is* the check. The recomp now reproduces
-that faithfully: the interrupt faults (pcrecomp `RECOMP_TRAP`), the fault is
-offered to the guest's own SEH chain (`native32_guest_seh`), the guest handler
-runs and `RtlUnwind`s. But the obfuscated `__except` continuation then
-computes on exact fault-`CONTEXT` state (registers and `Eip` at the faulting
-instruction) that the host's minimal `CONTEXT` does not reproduce, and the VM
-takes its tamper path and ends the process.
+A retail serial does **not** skip the check. The licensed install hits the
+same `int 1` path as the trial.
 
-Finishing this means reproducing a virtualized protector's exception-driven
-interpreter exactly — a large, separate toolkit effort, not a licensing
-shortcut. Per the project rules, faking the service, the license file or the
-trial check is not allowed, so the honest result is: **the recomp runs Flash's
-real code up to the real anti-debug client and stops there.** Someone with a
-retail serial (which skips the trial anti-debug path) can carry it further.
-
-### The retail path (your own serial)
-
-A retail serial skips the trial anti-debug path, so it is the cleaner way in.
-**Use your own serial only**, inside the throwaway VM, at run time: set
-`FLASH_SERIAL` (or answer the prompt) and run `tools\vm\serial.ps1` on Flash's
-normal serial-entry page. The serial is never stored, logged or committed, and
-must not appear in a screenshot. Activation is never faked.
-
-Tested 2026-11-12 with a user-supplied serial: the entry page accepted it, but
-it is an **upgrade** serial, so Flash then asks for the serial of the product
-it upgrades from ("Enter your previous serial number"). Without that, the
-retail path stops there, before activation. A full (non-upgrade) serial, or
-the upgrade serial together with the previous product's serial
-(`FLASH_PREV_SERIAL`), is needed to go further, and then online activation
-may be required. Macromedia's activation servers are long gone; if activation
-won't complete, the retail path stops there too.
+### Your own serial
+Flash needs a licensed install (or its 30-day trial). Use **your own** serial
+only, inside the throwaway VM, at run time: set `FLASH_SERIAL` (or answer the
+prompt) and run `tools\vm\serial.ps1` on Flash's normal serial-entry page. The
+serial is never stored, logged, committed or screenshotted. If your serial is
+an upgrade serial, Flash also asks for the previous product's serial
+(`FLASH_PREV_SERIAL`). A Studio MX 2004 serial registers Flash MX 2004 as
+part of Studio and activated directly in testing.
 
 ## Screenshots
 
-None yet: the authoring window is not reached. `tools/vm/make.jsfl` builds a
-small document and exports `harness.swf` with the **original** Flash.exe (used
-as the oracle); the recomp does not yet get that far.
+The authoring window, running as recompiled code (the licensed install; no
+original Flash.exe running):
+
+![The Flash MX 2004 authoring window, recompiled](docs/screenshots/authoring.png)
 
 ## What is not in this repo
 
-Nothing of Flash: no executable, DLL, license file, or generated source. The
-recompiled C is produced on your machine from your own installed copy by
-`run_lift.py`, into `src/recomp/gen/`, which is gitignored.
+Nothing of Flash: no executable, DLL, license file, serial, or generated
+source. The recompiled C is produced on your machine from your own installed
+copy by `run_lift.py`, into `src/recomp/gen/`, which is gitignored.
 
 ## Getting Started
 
-You need **your own Macromedia Flash MX 2004**. Because the licensing service
-must be installed, and because its anti-debug code runs during start-up, do
-all of this **in a throwaway Windows VM**, never on your workstation:
+You need **your own Macromedia Flash MX 2004**, installed and licensed (your
+serial, or its 30-day trial). Because the installer sets up a licensing
+service, do this **in a throwaway Windows VM**:
 
-1. Install Flash MX 2004 from your own disc (its 30-day trial is fine). This
-   sets up the Macromedia Licensing Service.
+1. Install Flash MX 2004 from your own disc. Activate it with your own serial
+   (Flash's activation dialog → "I have a serial number"), or use the trial.
 2. Double-click `Setup.cmd` (or run `tools\setup.ps1`). It copies the
    installed `Flash.exe` into `work\`, catalogs it, lifts it, and builds
    `build\flashmxrecomp.exe`. About an hour and 6 GB.
 3. Run `build\flashmxrecomp.exe --run --game "C:\Program Files (x86)\Macromedia\Flash MX 2004"`.
+   Pass a JSFL script with `--args script.jsfl`.
 
-`docs/bringup.md` has the step-by-step, the netlab VM recipe, and the
-licensing analysis.
+The conformance check is `tools\vm\proof.ps1` (in the VM, after
+`tools\vm\harness.ps1` has made the original's reference `.swf`). See
+[docs/bringup.md](docs/bringup.md).
 
 ## License
 
