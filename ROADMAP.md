@@ -22,6 +22,11 @@ document: shapes, text, two keyframes, a frame script).
    escape a window procedure. The host now ends that callback as Windows
    does. Check that nothing visible depends on it.
 
+## Deferred
+- **Linux and macOS.** Not possible yet: Flash licenses itself through a
+  Windows service, and the host is MSVC x86 inline assembly.
+- **An installer release**, once the corpus is wider.
+
 ## Toolkit work this proved out
 - On `pcrecomp-flashmx`: x86 software interrupts → guest SEH (`RECOMP_TRAP`),
   and C++ throws ended at a callback boundary. Both are generic. They belong on

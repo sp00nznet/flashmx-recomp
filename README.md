@@ -1,108 +1,87 @@
-# Macromedia Flash MX 2004, recompiled
+# Macromedia Flash MX 2004 — Static Recompilation
 
 Static recompilation of **Macromedia Flash MX 2004** (Macromedia, 2004), the
-Flash authoring tool (Flash 7), from its shipping Win32 executable to native
-C. No emulator, no wrapper DLLs.
+Flash 7 authoring tool, from its shipping Win32 executable, `Flash.exe` 7.2
+(VC++ 7.1, MFC 7.1 linked in), to native C. pcrecomp lifts `Flash.exe` to C,
+MSVC compiles it, and pcrecomp's `native32` host runs it; the DLLs Flash loads
+(xerces, GDI+, MSLU, the Macromedia licensing client) run natively through the
+host's bridge. Licensing is never faked: the recomp runs against a real
+install, activated with your own serial, and passes Flash's own licensing and
+anti-debug checks by running them faithfully.
 
-It is pcrecomp's first **Visual C++ 7.1 / MFC 7.1** program, and its first
-whose licensing client runs anti-debug code that uses Microsoft SEH as control
-flow (software interrupts inside `__try`).
-
-Built on the [pcrecomp](https://github.com/sp00nznet/pcrecomp) toolchain and
-following its shared house style (layout, CLI, conformance harness), like the
-other [pcrecomp projects](https://github.com/sp00nznet/pcrecomp#the-projects-that-built-this).
-
-## What it is
-
-A static recompilation of `Flash.exe` (Flash MX 2004 7.2, PE stamp
-`0x40EE908A`, 2004-07-09; MFC 7.1 statically linked in, ~10 MB of code).
-pcrecomp lifts `Flash.exe` to C, MSVC compiles the C, and pcrecomp's
-`native32` host runs it. The DLLs it loads — `xerces-c_2_1_0`, `GdiPlus`,
-MSLU (`unicows`), the Macromedia licensing client — run natively and are
-called through the host's bridge.
-
-**Licensing is never faked.** It runs against a real, licensed install: the
-real Macromedia Licensing Service, activated through Flash's own serial-entry
-flow with the user's own serial. The recomp passes Flash's own licensing and
-anti-debug checks by running them faithfully, not by skipping them.
-
-## Status: v0.2.0, alpha. The authoring window opens, and a published .swf matches the original byte for byte
-
-| Stage | State |
-|---|---|
-| Version recompiled | Flash MX 2004 7.2 (`Flash.exe`, 2004-07-09), licensed with the user's own serial (a Studio MX 2004 serial) |
-| Installer | **run by you**, in a throwaway VM (it sets up the licensing service). The recomp reads the installed `Flash.exe`; nothing is unpacked |
-| Function catalog (`disasm32`) | 34,229 functions, 86.5% of the code range |
-| Lift (`run_lift.py`) | 119,767 functions, 0 errors; ~37k C++/SEH exception funclets seeded (`tools/eh_seeds.py`); 966 functions with SEH/C++ landing pads; 1,146 `__except`/catch continuations kept out of dispatch |
-| Host (`build/flashmxrecomp.exe`, 32-bit, `native32`) | 698 imports bound, 0 unresolved |
-| Licensing + anti-debug | **passes**, through the real service and Flash's own checks (the `int 1` / `int n` traps inside `__try` fault and are handled as on NT) |
-| Authoring window | **opens**: tools, timeline, Start Page, Properties, panels ([screenshot](docs/screenshots/authoring.png)) |
-| JSFL automation | `tools/vm/make.jsfl` runs in the recomp: it builds a document, saves `harness.fla`, exports `harness.swf`, and quits |
-| Conformance (`.swf` vs the original's) | **IDENTICAL**: SHA-256 `7C908BA3…EBE81302` from both (`tools/vm/proof.ps1`; no original Flash.exe ran during the recomp's run). The `.fla` embeds a save timestamp and differs between any two runs, the original's included |
-
-Built and tested against pcrecomp branch `pcrecomp-flashmx` (on
-`pcrecomp-retailplus`).
-
-### How licensing got through (no fakes)
-The licensing client raises software interrupts (`int 1`, `int n`) inside
-`__try` and takes the `__except` block as "no debugger attached". Three things
-had to be right:
-1. **The interrupt has to fault.** Lifted as a no-op it looked like a
-   debugger. pcrecomp now lifts it to `RECOMP_TRAP`, which faults as NT does
-   and hands the fault to the guest's own SEH chain.
-2. **The guest's own handler runs.** The host turns on `native32_guest_seh`.
-   `_except_handler3` runs the filter and `RtlUnwind`s.
-3. **The `__except` block has to be a label, not a function.** disasm32 takes
-   a scope table's `__except` pointers for functions. Left in the dispatch
-   table, the handler's jump into the block ran it as a separate function,
-   with the wrong frame, and the check failed. `run_lift.py` now keeps those
-   continuations out of dispatch, so the jump lands in the parent body's
-   landing pad (as SWGB's driver does).
-
-A retail serial does **not** skip the check. The licensed install hits the
-same `int 1` path as the trial.
-
-### Your own serial
-Flash needs a licensed install (or its 30-day trial). Use **your own** serial
-only, inside the throwaway VM, at run time: set `FLASH_SERIAL` (or answer the
-prompt) and run `tools\vm\serial.ps1` on Flash's normal serial-entry page. The
-serial is never stored, logged, committed or screenshotted. If your serial is
-an upgrade serial, Flash also asks for the previous product's serial
-(`FLASH_PREV_SERIAL`). A Studio MX 2004 serial registers Flash MX 2004 as
-part of Studio and activated directly in testing.
-
-## Screenshots
-
-The authoring window, running as recompiled code (the licensed install; no
-original Flash.exe running):
+Built on the [pcrecomp](https://github.com/sp00nznet/pcrecomp) toolchain, on
+its branch **`pcrecomp-flashmx`** (not yet merged to `main`), and following its
+shared house style like the other
+[pcrecomp projects](https://github.com/sp00nznet/pcrecomp#the-projects-that-built-this).
 
 ![The Flash MX 2004 authoring window, recompiled](docs/screenshots/authoring.png)
 
-## What is not in this repo
-
-Nothing of Flash: no executable, DLL, license file, serial, or generated
-source. The recompiled C is produced on your machine from your own installed
-copy by `run_lift.py`, into `src/recomp/gen/`, which is gitignored.
-
 ## Getting Started
 
-You need **your own Macromedia Flash MX 2004**, installed and licensed (your
-serial, or its 30-day trial). Because the installer sets up a licensing
-service, do this **in a throwaway Windows VM**:
+You need **your own copy** of Macromedia Flash MX 2004, installed and
+activated with **your own serial** (or running its 30-day trial). Nothing
+from Flash, and no serial, is in this repository or downloaded for you;
+everything is built on your machine from your installed copy.
 
-1. Install Flash MX 2004 from your own disc. Activate it with your own serial
-   (Flash's activation dialog → "I have a serial number"), or use the trial.
-2. Double-click `Setup.cmd` (or run `tools\setup.ps1`). It copies the
-   installed `Flash.exe` into `work\`, catalogs it, lifts it, and builds
-   `build\flashmxrecomp.exe`. About an hour and 6 GB.
-3. Run `build\flashmxrecomp.exe --run --game "C:\Program Files (x86)\Macromedia\Flash MX 2004"`.
-   Pass a JSFL script with `--args script.jsfl`.
+Flash's installer sets up a licensing service, so do this **in a throwaway
+Windows VM**:
 
-The conformance check is `tools\vm\proof.ps1` (in the VM, after
-`tools\vm\harness.ps1` has made the original's reference `.swf`). See
-[docs/bringup.md](docs/bringup.md).
+1. Install Flash MX 2004 from your own disc and activate it with your own
+   serial (Flash's activation dialog, "I have a serial number"), or use the
+   trial. To type the serial by script instead, set `FLASH_SERIAL` (and
+   `FLASH_PREV_SERIAL` for an upgrade serial) and run `tools\vm\serial.ps1`
+   on that page; it is never stored, logged or screenshotted.
+2. Download this repository (the green **Code** button, then **Download
+   ZIP**) and unzip it somewhere with 6 GB free.
+3. Double-click **`Setup.cmd`**. It asks before installing anything (Python,
+   pefile and capstone, the Visual Studio 2022 Build Tools), fetches pcrecomp
+   on branch `pcrecomp-flashmx` beside this folder, finds Flash, catalogs,
+   lifts and builds `build\flashmxrecomp.exe`, and leaves a
+   `Flash MX 2004` shortcut here. About an hour; a rerun skips finished steps.
+
+Setup never asks for or handles a serial: activation is Flash's own, done
+before step 3. There is no installer release yet, and no `setup.sh` build:
+the recomp needs Flash's licensing service, which only a Windows install has
+(`./setup.sh` says so and exits). Building by hand is in
+**[docs/building.md](docs/building.md)**.
+
+## Status
+
+**v0.2.0, alpha.** On a licensed install the recomp passes Flash's licensing
+and anti-debug checks, opens the authoring window, and runs JSFL end to end.
+The harness proves one thing so far: a test document exported to `.swf` by
+the recomp is **byte-identical** to the original Flash.exe's.
+
+| | |
+|---|---|
+| Functions found (`disasm32`) | 34,229 (86.5% of the code) |
+| Lifted to C | 119,767, 0 errors |
+| Imports bound | 698, 0 unresolved |
+| Conformance (`.swf` vs the original's) | 1 of 1 identical (SHA-256 `7C908BA3…EBE81302`, no original Flash.exe running) |
+
+Only one document is in the corpus, and the window, menus and tools have
+been seen, not driven. [bringup.md](docs/bringup.md) is the log of each wall
+and its fix, and [ROADMAP.md](ROADMAP.md) what comes next.
+
+## Screenshots
+
+The authoring window, running as recompiled code on the licensed install:
+
+![The authoring window](docs/screenshots/authoring.png)
+
+## Documentation
+
+- [docs/building.md](docs/building.md): building by hand, the toolkit branch, the command line
+- [docs/testing.md](docs/testing.md): the `.swf` conformance harness and the VM scripts
+- [docs/bringup.md](docs/bringup.md): the binary, how licensing got through, every wall so far
+- [ROADMAP.md](ROADMAP.md), [CHANGELOG.md](CHANGELOG.md), [CONTRIBUTING.md](CONTRIBUTING.md)
+
+## Contributors
+
+See **[CONTRIBUTORS.md](CONTRIBUTORS.md)** for who did what.
 
 ## License
 
-MIT (the recomp host, the lift driver and the tools). Flash MX 2004 is
-© 2004 Macromedia, Inc.; no part of it is in this repo.
+MIT for this repository's own code ([LICENSE](LICENSE)). Flash MX 2004 is
+© 2004 Macromedia, Inc. (now Adobe); none of its files, no serial, and
+nothing generated from it is in this repository ([NOTICE.md](NOTICE.md)).

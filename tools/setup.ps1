@@ -11,8 +11,9 @@
 #   -GameDir <the folder Flash MX 2004 is installed in>   skip the question
 #   -Yes                                                  answer yes to every install question
 #
-# The toolkit is ..\pcrecomp (PCRECOMP overrides it). Under recomp-launcher
-# (RECOMP_LAUNCHER=1) it never waits for Enter, and exit code 0 means the
+# The toolkit is ..\pcrecomp (PCRECOMP overrides it), on its branch
+# pcrecomp-flashmx: this project needs that unmerged branch, not main. Under
+# recomp-launcher (RECOMP_LAUNCHER=1) it never waits for Enter, and exit code 0 means the
 # shortcut is there. Nothing of Flash is ever downloaded.
 param([switch]$Force, [switch]$Yes, [Alias('Game')][string]$GameDir = "")
 $Game = $GameDir
@@ -60,7 +61,8 @@ function Run($what, [string[]]$cmd) {
 
 if ($env:RECOMP_LAUNCHER -ne '1') { Clear-Host }
 Say "Flash MX 2004: static recompilation setup" 'White'
-Say "You need your own Flash MX 2004, installed (its trial works), and about 6 GB free."
+Say "You need your own Flash MX 2004, installed and activated with your own serial (or its trial), and about 6 GB free."
+Say "Setup never asks for, stores or uses a serial: you enter yours in Flash's own activation dialog (or with tools\vm\serial.ps1 and FLASH_SERIAL)."
 
 # ---------------------------------------------------------------- tools
 Step 1 "Checking the tools"
@@ -109,9 +111,13 @@ if (-not (Test-Path (Join-Path $Toolkit 'tools\lift\lift32.py'))) {
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Fail "Git did not install. Install Git for Windows yourself." }
   }
   if (-not (Ask "  Download it now (git, about 20 MB)?")) { Fail "pcrecomp is required at $Toolkit." }
-  Run "Cloning pcrecomp" @('git', 'clone', '--depth', '1', 'https://github.com/sp00nznet/pcrecomp', $Toolkit)
+  Run "Cloning pcrecomp (branch pcrecomp-flashmx)" @('git', 'clone', '--depth', '1', '-b', 'pcrecomp-flashmx', 'https://github.com/sp00nznet/pcrecomp', $Toolkit)
 }
 Say "  pcrecomp: $Toolkit"
+if (Test-Path (Join-Path $Toolkit '.git')) {
+  $br = (& git -C $Toolkit rev-parse --abbrev-ref HEAD 2>$null)
+  if ($br -and $br -ne 'pcrecomp-flashmx') { Say "  Note: pcrecomp is on '$br'; this project is built and tested on 'pcrecomp-flashmx'." 'Yellow' }
+}
 
 # Visual Studio 2022 or its Build Tools, with the C++ x86 compiler; CMake and
 # Ninja ship inside that workload, so build.cmd needs nothing else.

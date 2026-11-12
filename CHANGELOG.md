@@ -1,5 +1,23 @@
 # Changelog
 
+All notable changes to this project. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
+versions follow [SemVer](https://semver.org/).
+
+## [Unreleased]
+
+### Added
+- `CONTRIBUTING.md`, `CONTRIBUTORS.md`, `docs/building.md`, `docs/testing.md`.
+- `setup.sh`, which says there is no Linux or macOS build (Flash needs its
+  Windows licensing service) and exits.
+- `.github/workflows/installer.yml`, run by hand only.
+
+### Changed
+- Setup clones pcrecomp on branch `pcrecomp-flashmx` (it cloned `main`, which
+  lacks this project's toolkit changes) and warns when an existing checkout is
+  on another branch. It says up front that it never handles a serial.
+- README in the pcrecomp house layout; `NOTICE` is now `NOTICE.md`.
+- `docs/bringup.md` no longer names lab machines.
+
 ## [0.2.0] - 2026-11-12
 
 The authoring window opens, and a published `.swf` matches the original's
@@ -18,7 +36,7 @@ byte for byte.
   The recomp ran against that install, and the real anti-debug check passed.
 - The authoring window opens (`docs/screenshots/authoring.png`).
 - `tools/vm/make.jsfl` run by the recomp: `harness.swf` SHA-256
-  `7C908BA3…EBE81302`, identical to the original Flash.exe's. No original
+  `7C908BA3â€¦EBE81302`, identical to the original Flash.exe's. No original
   Flash.exe was running (`tools/vm/proof.ps1`).
 
 ### Changed

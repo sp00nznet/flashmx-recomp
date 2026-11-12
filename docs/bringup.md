@@ -2,7 +2,7 @@
 
 How Flash MX 2004 was recompiled and run, how its licensing client was
 passed without faking anything, and how the output was verified. All of it
-was done in **throwaway Windows VMs** on the netlab Proxmox lab, never on a
+was done in **throwaway Windows VMs** on the lab, never on a
 workstation, because the installer sets up a licensing service and the
 licensing client runs anti-debug code.
 
@@ -121,10 +121,8 @@ search; `-NoTrial` skips the trial clicks for a licensed install.
 `tools/vm/proof.ps1` runs the recomp with no original Flash.exe present and
 reports the `.swf` hash. `tools/swf_diff.py` compares two `.swf` files.
 
-## Netlab VM recipe
-Uncommitted, in `F:/projects/tools/recomp-netlab/local/projects/flashmx.env`
-(per the project rules). Make a throwaway full clone of the Windows test box
-(VM 103) with a ZFS `send | recv` of each disk; a live TPM disk can't be
-`qm clone`d. Install Flash and run the recomp inside it, then destroy it. The
-throwaways used here (VM 135, three times) were all destroyed, and testbox
-itself was never modified.
+## The VM
+Make a throwaway full clone of a Windows test VM, install Flash and run the
+recomp inside it, then destroy it. The netlab recipe for it stays local,
+uncommitted. Every throwaway used here was destroyed, and the test VM it was
+cloned from was never modified.
