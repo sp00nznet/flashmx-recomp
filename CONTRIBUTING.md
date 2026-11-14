@@ -26,7 +26,7 @@ fine.
 
 - A bug in the lifter, the catalog or the native bridge belongs in
   [pcrecomp](https://github.com/sp00nznet/pcrecomp) (this project builds on
-  its `pcrecomp-flashmx` branch), not here.
+  its `main`), not here.
 - A fix to Flash itself is a patch in `run_lift.py` or the host, with a
   comment that says what it fixes and why. Never one that skips or fakes the
   licensing check.

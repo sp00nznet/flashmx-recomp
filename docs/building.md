@@ -11,10 +11,9 @@ service.
 - Python 3.10 or newer (`py -3`), with `pip install --user pefile capstone`.
 - Visual Studio 2022 (or its Build Tools) with the C++ x86 tools; CMake and
   Ninja come with that workload.
-- pcrecomp beside this folder, on branch **`pcrecomp-flashmx`**:
-  `git clone -b pcrecomp-flashmx https://github.com/sp00nznet/pcrecomp ..\pcrecomp`
-  (or set `PCRECOMP` to a checkout). `main` lacks the trap-to-SEH and
-  callback-throw changes this needs.
+- pcrecomp beside this folder, on `main`:
+  `git clone https://github.com/sp00nznet/pcrecomp ..\pcrecomp`
+  (or set `PCRECOMP` to a checkout).
 
 ## Steps
 

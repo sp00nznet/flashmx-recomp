@@ -12,6 +12,7 @@ versions follow [SemVer](https://semver.org/).
 - `.github/workflows/installer.yml`, run by hand only.
 
 ### Changed
+- Builds against pcrecomp main; the `pcrecomp-flashmx` branch is merged.
 - Setup clones pcrecomp on branch `pcrecomp-flashmx` (it cloned `main`, which
   lacks this project's toolkit changes) and warns when an existing checkout is
   on another branch. It says up front that it never handles a serial.

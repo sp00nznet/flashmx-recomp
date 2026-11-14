@@ -28,9 +28,8 @@ document: shapes, text, two keyframes, a frame script).
 - **An installer release**, once the corpus is wider.
 
 ## Toolkit work this proved out
-- On `pcrecomp-flashmx`: x86 software interrupts → guest SEH (`RECOMP_TRAP`),
-  and C++ throws ended at a callback boundary. Both are generic. They belong on
-  the wide branch once a sibling title confirms them.
+- In pcrecomp `main` (from the `pcrecomp-flashmx` branch): x86 software interrupts → guest SEH (`RECOMP_TRAP`),
+  and C++ throws ended at a callback boundary. Both are generic.
 - The fix that got licensing through was a lift-driver rule: keep
   `__except`/catch continuations out of dispatch. SWGB's driver already does
   it. It should move into pcrecomp's shared driver, so every MSVC SEH title

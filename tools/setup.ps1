@@ -11,8 +11,7 @@
 #   -GameDir <the folder Flash MX 2004 is installed in>   skip the question
 #   -Yes                                                  answer yes to every install question
 #
-# The toolkit is ..\pcrecomp (PCRECOMP overrides it), on its branch
-# pcrecomp-flashmx: this project needs that unmerged branch, not main. Under
+# The toolkit is ..\pcrecomp (PCRECOMP overrides it), on main. Under
 # recomp-launcher (RECOMP_LAUNCHER=1) it never waits for Enter, and exit code 0 means the
 # shortcut is there. Nothing of Flash is ever downloaded.
 param([switch]$Force, [switch]$Yes, [Alias('Game')][string]$GameDir = "")
@@ -111,12 +110,12 @@ if (-not (Test-Path (Join-Path $Toolkit 'tools\lift\lift32.py'))) {
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Fail "Git did not install. Install Git for Windows yourself." }
   }
   if (-not (Ask "  Download it now (git, about 20 MB)?")) { Fail "pcrecomp is required at $Toolkit." }
-  Run "Cloning pcrecomp (branch pcrecomp-flashmx)" @('git', 'clone', '--depth', '1', '-b', 'pcrecomp-flashmx', 'https://github.com/sp00nznet/pcrecomp', $Toolkit)
+  Run "Cloning pcrecomp" @('git', 'clone', '--depth', '1', 'https://github.com/sp00nznet/pcrecomp', $Toolkit)
 }
 Say "  pcrecomp: $Toolkit"
 if (Test-Path (Join-Path $Toolkit '.git')) {
   $br = (& git -C $Toolkit rev-parse --abbrev-ref HEAD 2>$null)
-  if ($br -and $br -ne 'pcrecomp-flashmx') { Say "  Note: pcrecomp is on '$br'; this project is built and tested on 'pcrecomp-flashmx'." 'Yellow' }
+  if ($br -and $br -ne 'main') { Say "  Note: pcrecomp is on '$br'; this project is built and tested on 'main'." 'Yellow' }
 }
 
 # Visual Studio 2022 or its Build Tools, with the C++ x86 compiler; CMake and

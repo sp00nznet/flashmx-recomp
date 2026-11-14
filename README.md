@@ -10,7 +10,7 @@ install, activated with your own serial, and passes Flash's own licensing and
 anti-debug checks by running them faithfully.
 
 Built on the [pcrecomp](https://github.com/sp00nznet/pcrecomp) toolchain, on
-its branch **`pcrecomp-flashmx`** (not yet merged to `main`), and following its
+its `main` branch, and following its
 shared house style like the other
 [pcrecomp projects](https://github.com/sp00nznet/pcrecomp#the-projects-that-built-this).
 
@@ -35,7 +35,7 @@ Windows VM**:
    ZIP**) and unzip it somewhere with 6 GB free.
 3. Double-click **`Setup.cmd`**. It asks before installing anything (Python,
    pefile and capstone, the Visual Studio 2022 Build Tools), fetches pcrecomp
-   on branch `pcrecomp-flashmx` beside this folder, finds Flash, catalogs,
+   `main` beside this folder, finds Flash, catalogs,
    lifts and builds `build\flashmxrecomp.exe`, and leaves a
    `Flash MX 2004` shortcut here. About an hour; a rerun skips finished steps.
 
