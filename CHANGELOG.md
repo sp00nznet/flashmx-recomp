@@ -5,6 +5,8 @@ versions follow [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-20
+
 ### Added
 - `CONTRIBUTING.md`, `CONTRIBUTORS.md`, `docs/building.md`, `docs/testing.md`.
 - `setup.sh`, which says there is no Linux or macOS build (Flash needs its
